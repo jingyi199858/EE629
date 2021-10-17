@@ -1,0 +1,82 @@
+{
+    "$schema": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json",
+    "version": 2,
+    "controller": {
+    },
+    "workers": [
+        {
+            "type": "router",
+            "realms": [
+                {
+                    "name": "realm1",
+                    "roles": [
+                        {
+                            "name": "anonymous",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "web",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8080
+                    },
+                    "paths": {
+                        "/": {
+                            "type": "archive",
+                            "archive": "../home.zip",
+                            "default_object": "index.html",
+                            "cache": true,
+                            "mime_types": {
+                                ".ttf": "font/ttf",
+                                ".woff": "font/woff",
+                                ".woff2": "font/woff2"
+                            }
+                        },
+                        "ws": {
+                            "type": "websocket"
+                        },
+                        "autobahn": {
+                            "type": "archive",
+                            "archive": "autobahn-v20.2.1.zip",
+                            "origin": "https://github.com/crossbario/autobahn-js-browser/archive/v20.2.1.zip",
+                            "object_prefix": "autobahn-js-browser-20.2.1",
+                            "default_object": "autobahn.min.js",
+                            "download": true,
+                            "cache": true,
+                            "hashes": [
+                               "b69cd17ac043cceceea8ed589a09a2555b5c39e32c2fea18ecc26dc5baf67de8"
+                            ],
+                            "mime_types": {
+                               ".min.js": "text/javascript",
+                               ".jgz": "text/javascript"
+                            }
+                        },
+                        "info": {
+                            "type": "nodeinfo"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

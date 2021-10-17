@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <style>
+         body {
+            font-family: sans-serif;
+         }
+         .ind {
+            padding: 12px;
+            margin: 20px;
+            width: 200px;
+            height: 100px;
+         }
+         .active {
+            background-color: #03f;
+         }
+         .inactive {
+            background-color: #aaa;
+         }
+      </style>
+   </head>
+   <body>
+      <h1>Crossbar IoT Starterkit - Dispenser Demo</h1>
+
+      <p>This demo is currently hardwired to the Starterkit with id <b><span id="serial" /></b>.</p>
+
+      <hr>
+
+      <p>These controls and indicators represent the dispenser hardware that is exposed as a WAMP component and connected to Crossbar.io:</p>
+
+      <button onclick='trigger_digout(0)'>Trigger Relay A</button>
+      <button onclick='trigger_digout(1)'>Trigger Relay B</button>
+      <button onclick='toggle_digout(2)'>Toggle LED A</button>
+      <button onclick='toggle_digout(3)'>Toggle LED B</button>
+      <div id="digin_0" class="ind inactive">Button A</div>
+      <div id="digin_1" class="ind inactive">Button B</div>
+
+      <hr>
+
+      <p>Open JavaScript console to watch output.</p>
+
+      <script>AUTOBAHN_DEBUG = false;</script>
+      <script src='autobahn.min.js'></script>
+
+      <script>
+         var router = 'wss://demo.crossbar.io/ws';
+         var realm = 'crossbardemo';
+         var device = '1307984267'; // on the Pi: cat /proc/cpuinfo | grep Serial
+         var prefix = 'io.crossbar.demo.iotstarterkit.' + device + '.dispenser';
+         var session = null;
+
+         document.getElementById('serial').innerHTML = device;
+
+         function trigger_digout(idx) {
+            if (session) {
+               session.call(prefix + '.trigger_digout', [idx, 100]).then(
+                  function (res) {
+                     console.log('digout triggered');
+                  },
+                  function (e) {
+                     console.log('could not trigger digout:', e);
+                  }
+               );
+            }
+         }
+
+         function toggle_digout(idx) {
+            if (session) {
+               session.call(prefix + '.toggle_digout', [idx]).then(
+                  function (res) {
+                     console.log('digout toggled');
+                  },
+                  function (e) {
+                     console.log('could not toggle digout:', e);
+                  }
+               );
+            }
+         }
+
+         var connection = new autobahn.Connection({url: router, realm: realm});
+
+         connection.onopen = function (new_session, details) {
+
+            console.log('connected:', details);
+            session = new_session;
+
+            function on_digin_changed (args, kwargs) {
+               var el = document.getElementById('digin_' + kwargs.digin);
+               if (el) {
+                  if (kwargs.state) {
+                     el.className = 'ind inactive';
+                  } else {
+                     el.className = 'ind active';
+                  }
+               }
+            }
+
+            session.subscribe(prefix + '.on_digin_changed', on_digin_changed).then(
+               function () {
+                  console.log('ok, subcribed to event "on_digin_changed"');
+               },
+               function (e) {
+                  console.log(e);
+               }
+            );
+
+            session.call(prefix + '.get_digin').then(
+               function (digins) {
+                  var digin_idx = 0;
+                  digins.forEach(function (state) {
+                     var el = document.getElementById('digin_' + digin_idx);
+                     if (el) {
+                        if (state) {
+                           el.className = 'ind inactive';
+                        } else {
+                           el.className = 'ind active';
+                        }
+                     }
+                     digin_idx += 1;
+                  });
+               },
+               function (e) {
+                  console.log(e);
+               }
+            );
+         };
+
+         connection.onclose = function (reason, details) {
+            console.log('connection lost:', reason, details);
+         }
+
+         connection.open();
+      </script>
+   </body>
+</html>

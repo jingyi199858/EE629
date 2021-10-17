@@ -1,0 +1,28 @@
+from time import sleep
+from autobahn.util import utcnow
+from autobahn.wamp.auth import generate_totp_secret, compute_totp, qrcode_from_totp
+
+from authenticator import PRINCIPALS_DB
+
+# generate SVGs for the QR codes of the principals
+for principal in PRINCIPALS_DB:
+    seed = PRINCIPALS_DB[principal]['seed']
+    issuer = 'Crossbar.io'
+    qrcode_data = qrcode_from_totp(seed, principal, issuer)
+    filename = '{}.svg'.format(principal)
+    with open(filename, 'wb') as f:
+        f.write(qrcode_data)
+        print('QR Code for principal {} written to {}'.format(principal, filename))
+
+keep_running = False
+
+# generate current TOTP values for all principals each 10s
+while True:
+    print("\n{}".format(utcnow()))
+    for principal in PRINCIPALS_DB:
+        seed = PRINCIPALS_DB[principal]['seed']
+        print("{}: {}".format(principal, compute_totp(seed)))
+    if keep_running:
+        sleep(10)
+    else:
+        break

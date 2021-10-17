@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>Video</title>
+   <meta charset='utf-8'>
+   <!-- This loads the dependencies, autobahnJS for WAMP and qrcode to generate the QR code.
+       Of course, I suggest to avoid hotlinking in you own projects (it's not Google CDN),
+       but for the demo, it's way simpler -->
+   <link rel="stylesheet" href="css/videocontrol.css">
+   <script>
+       AUTOBAHN_DEBUG = false;
+  </script>
+     <script src="/shared/autobahn/autobahn.min.js"></script>
+   <script src="qrcode.min.js"></script>
+
+   <style type="text/css">
+      #vid {
+         /* Video size */
+         width:427px;
+         height:240px;
+      }
+      /* Quick and dirty centering */
+      #container {
+          width:427px;
+          margin:auto;
+      }
+      #ctrllink {
+          display:block;
+          width:256px;
+          margin:auto;
+      }
+   </style>
+
+</head>
+<body>
+   <header>
+      <div id="header_inner">
+         <div id="demo_title">
+            <span>Videocontrol</span>
+         </div>
+         <a class="navbar-brand" href="/">
+            <img src="crossbar_icon_inverted.svg" alt="crossbar logo inverted" width="60" height="60">
+            <img src="crossbar_demos_text_paths.svg" alt="crossbar logo inverted" width="248" height="60">
+         </a>
+      </div>
+
+   </header>
+   <div class="demo_links">
+      <p>
+         Video player where play/pause and volume can be remote controlled via a HTML5 controller<br>
+      </p>
+      <div>
+         <a href="https://github.com/crossbario/crossbarexamples/tree/master/demos/videocontrol">Source Code</a>
+         <a href="http://crossbar.io">
+            Crossbar.io Homepage
+         </a>
+      </div>
+   </div>
+
+   <div id="demo_body">
+      <div id="container">
+        <p>
+
+         <!-- I use the HTML5 video player because that's the easiest
+            way to achieve our goal. I'm not going to talk too much
+            about this, there are plenty of good tutorials about
+            this topic out there. -->
+         <!-- Again we hotlink - easiest, but the W3C server performance is not great -->
+         <video id="vid"
+               class="video-js vjs-default-skin"
+               controls preload="auto"
+               poster="https://s3-eu-west-1.amazonaws.com/crossbar.io/videocontrol_data/poster.png" >
+            <source id='ogv'
+               src="https://s3-eu-west-1.amazonaws.com/crossbar.io/videocontrol_data/trailer.ogv"
+               type='video/ogg'>
+            <source id='mp4'
+               src="https://s3-eu-west-1.amazonaws.com/crossbar.io/videocontrol_data/trailer.mp4"
+               type='video/mp4'>
+            <source id='webm'
+               src="https://s3-eu-west-1.amazonaws.com/crossbar.io/videocontrol_data/trailer.webm"
+               type='video/webm'>
+         </video>
+        </p>
+        <!-- Just an empty element to hold the QR code -->
+        <p>
+           <strong>Scan the code below (or click on it) to open a page with the controller for the video.</strong>
+        </p>
+        <p>
+          <a id="ctrllink" href="#" target="_blank">
+            <span id="qrcode"></span>
+          </a>
+        </p>
+        <p>
+          <strong> Note: </strong> The link will only work for external devices if the page is served with an IP in the address. For pages served as "localhost" (and displayed as such), please manually enter the IP under which the page is served and reload the page so that the QR code gets updated.
+        </p>
+       </div>
+       <center>Read more in the <a href="http://tavendo.com/blog/post/small-demo-of-a-pragmatic-use-of-wamp-in-python/">blog post in English</a> or <a href="http://sametmax.com/introduction-a-wamp-en-python/">French</a> .
+
+      <div class="status_line">
+         Status: <span class="statusline"></span>
+      </div>
+
+   </div>
+
+</body>
+
+<script>
+  var player = {};
+
+  /* We will use vanilla JS to avoid mixing in jQuery
+  concepts. I'm NOT gonna use best practices because
+  I don't want to saturate the code with a lot of
+  off topic details */
+
+  /* Run the code once the page is loaded */
+  window.addEventListener("load", function(){
+
+    var updateStatusline = function (statusline) {
+      document.getElementsByClassName("statusline")[0].innerHTML = statusline;
+    }
+
+    console.log("loaded");
+
+    // the URL of the WAMP Router (Crossbar.io)
+    //
+    var wsuri;
+    if (document.location.origin == "file://") {
+       wsuri = "ws://127.0.0.1:8080";
+
+    } else {
+       wsuri = (document.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
+                   document.location.host + "/ws";
+    }
+
+    var httpUri;
+
+    if (document.location.origin == "file://") {
+       httpUri = "http://127.0.0.1:8080/lp";
+
+    } else {
+       httpUri = (document.location.protocol === "http:" ? "http:" : "https:") + "//" +
+                   document.location.host + "/lp";
+    }
+
+
+    // the WAMP connection to the Router
+    //
+    var connection = new autobahn.Connection({
+       // url: wsuri,
+       transports: [
+          {
+             'type': 'websocket',
+             'url': wsuri
+          },
+          {
+             'type': 'longpoll',
+             'url': httpUri
+          }
+       ],
+       realm: "crossbardemo"
+    });
+
+    /* Run this code once the connection is
+     successful. Note that I don't handle
+     any error cases in this demo since
+     it's a rabbit hole I don't want to
+     fall in right now. */
+    connection.onopen = function (session, details) {
+
+      console.log("connected");
+
+      if (details.x_cb_node_id) {
+         updateStatusline("Connected to node <strong>" + details.x_cb_node_id + "</strong> at " + wsuri);
+      } else {
+         updateStatusline("Connected to " + wsuri);
+      }
+
+      session.prefix('demo', 'io.crossbar.demo.videocontroller');
+
+         /* Creating the QR code with a link targetting
+         the right URL. We put the ID in the hash.
+         We assume that the player page and the controller are served on the same port
+         */
+        var uuid = Math.floor(Math.random() * 9007199254740992);
+        var controlUrl = document.location.origin + document.location.pathname + "control.html#" + uuid;
+        var codeDiv = document.getElementById("qrcode");
+        codeDiv.innerHTML = "";
+        new QRCode(codeDiv, controlUrl);
+        var ctrllink = document.getElementById("ctrllink");
+        ctrllink.href = controlUrl;
+
+        /* Most of our job is about manipulating
+         this element */
+        var video = document.getElementById("vid");
+
+      /* We declare that these 4 function can be
+         called remotly. They can be called by
+         usig a named composed with our ID and
+         the action you wish to do. E.G:
+         'b27f7e9360c04efabfae5ac21a8f4e3c.play'
+         to call "play" in our session.
+         */
+        session.register('demo:' + uuid + '.play', function(){
+           video.play();
+        });
+
+        session.register('demo:' + uuid + '.pause', function(){
+           video.pause();
+        });
+
+        session.register('demo:' + uuid + '.volume', function(val){
+           video.volume = val[0];
+        });
+
+        session.register('demo:' + uuid + '.status', function(val){
+          return {
+            'playing': !video.paused,
+            'volume': video.volume
+          };
+        });
+
+
+
+      /* Somebody could very well push play directly from
+        this page.
+
+        So we need to react if the user does it, and
+        publish an WAMP event to allow our remote
+        control to update its UI.
+      */
+       video.addEventListener('play', function(){
+         /* We publish a message saying the player
+            started to play the video */
+         session.publish('demo:' + uuid + '.play');
+       });
+
+
+        /* addEventListener has nothing to do with WAMP.
+          it's vanilla Javascript DOM API. */
+        video.addEventListener('pause', function(){
+          session.publish('demo:' + uuid + '.pause');
+        });
+
+        video.addEventListener('volumechange', function(){
+          session.publish('demo:' + uuid + '.volume', [video.volume]);
+        });
+
+    };
+
+
+    connection.onclose = function(reason, details) {
+      console.log("connection closed ", reason, details);
+
+       if (details.will_retry) {
+         updateStatusline("Trying to reconnect in " + parseInt(details.retry_delay) + " s.");
+      } else {
+         updateStatusline("Disconnected");
+      }
+   }
+
+    /* Opening the connection once all the callbacks are set */
+    connection.open();
+  });
+
+</script>
+
+</html>

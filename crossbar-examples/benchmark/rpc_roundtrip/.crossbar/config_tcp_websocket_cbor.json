@@ -1,0 +1,224 @@
+{
+    "$schema": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json",
+    "version": 2,
+    "controller": {
+       "fabric": {
+       }
+    },
+    "workers": [
+        {
+            "type": "router",
+            "realms": [
+                {
+                    "name": "realm1",
+                    "roles": [
+                        {
+                            "name": "anonymous",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "websocket",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8080
+                    },
+                    "serializers": ["cbor"]
+                }
+            ]
+        },
+        {
+            "type": "container",
+            "options": {
+                "pythonpath": [
+                    ".."
+                ]
+            },
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "callee.AppSession",
+                    "realm": "realm1",
+                    "transport": {
+                        "type": "websocket",
+                        "endpoint": {
+                            "type": "tcp",
+                            "host": "127.0.0.1",
+                            "port": 8080
+                        },
+                        "url": "ws://localhost:8080",
+                        "serializers": ["json"]
+                    },
+                    "extra": {
+                        "prefix": "com.example.websocket-cbor",
+                        "logname": "callee.1"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "container",
+            "options": {
+                "pythonpath": [
+                    ".."
+                ]
+            },
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "callee.AppSession",
+                    "realm": "realm1",
+                    "transport": {
+                        "type": "websocket",
+                        "endpoint": {
+                            "type": "tcp",
+                            "host": "127.0.0.1",
+                            "port": 8080
+                        },
+                        "url": "ws://localhost:8080",
+                        "serializers": ["json"]
+                    },
+                    "extra": {
+                        "prefix": "com.example.websocket-cbor",
+                        "logname": "callee.2"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "container",
+            "options": {
+                "pythonpath": [
+                    ".."
+                ]
+            },
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "caller.AppSession",
+                    "realm": "realm1",
+                    "transport": {
+                        "type": "websocket",
+                        "endpoint": {
+                            "type": "tcp",
+                            "host": "127.0.0.1",
+                            "port": 8080
+                        },
+                        "url": "ws://localhost:8080",
+                        "serializers": ["json"]
+                    },
+                    "extra": {
+                        "prefix": "com.example.websocket-cbor",
+                        "logname": "caller.1"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "container",
+            "options": {
+                "pythonpath": [
+                    ".."
+                ]
+            },
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "caller.AppSession",
+                    "realm": "realm1",
+                    "transport": {
+                        "type": "websocket",
+                        "endpoint": {
+                            "type": "tcp",
+                            "host": "127.0.0.1",
+                            "port": 8080
+                        },
+                        "url": "ws://localhost:8080",
+                        "serializers": ["json"]
+                    },
+                    "extra": {
+                        "prefix": "com.example.websocket-cbor",
+                        "logname": "caller.2"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "container",
+            "options": {
+                "pythonpath": [
+                    ".."
+                ]
+            },
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "caller.AppSession",
+                    "realm": "realm1",
+                    "transport": {
+                        "type": "websocket",
+                        "endpoint": {
+                            "type": "tcp",
+                            "host": "127.0.0.1",
+                            "port": 8080
+                        },
+                        "url": "ws://localhost:8080",
+                        "serializers": ["json"]
+                    },
+                    "extra": {
+                        "prefix": "com.example.websocket-cbor",
+                        "logname": "caller.3"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "container",
+            "options": {
+                "pythonpath": [
+                    ".."
+                ]
+            },
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "caller.AppSession",
+                    "realm": "realm1",
+                    "transport": {
+                        "type": "websocket",
+                        "endpoint": {
+                            "type": "tcp",
+                            "host": "127.0.0.1",
+                            "port": 8080
+                        },
+                        "url": "ws://localhost:8080",
+                        "serializers": ["json"]
+                    },
+                    "extra": {
+                        "prefix": "com.example.websocket-cbor",
+                        "logname": "caller.4"
+                    }
+                }
+            ]
+        }
+    ]
+}

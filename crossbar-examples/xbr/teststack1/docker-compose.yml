@@ -1,0 +1,160 @@
+version: '3'
+services:
+
+    blockchain:
+        image: crossbario/crossbarfx-blockchain:latest
+        container_name: xbr_blockchain
+        restart: always
+        ports:
+            - "1545:1545"
+        environment:
+            - XBR_HDWALLET_SEED="myth like bonus scare over problem client lizard pioneer submit female collect"
+
+    master:
+        image: crossbario/crossbarfx:pypy-slim-amd64-20.4.2
+        # user: "1000:1000"
+        restart: always
+        environment:
+            - CROSSBAR_FABRIC_SUPERUSER=../default.pub
+            - CROSSBARFX_METERING_URL=https://metering.crossbario.com/submit
+            - CE_DISABLE=1
+            - CROSSBARFX_DISABLE_CE=1
+        network_mode: host
+        #ports:
+        #    - "9000:9000"
+        volumes:
+            - "${PWD}/master:/node:rw"
+        command:
+            - master
+            - start
+            - --cbdir=/node/.crossbar
+            - --config=config.json
+            - --loglevel=info
+
+    edge1:
+        image: crossbario/crossbarfx:pypy-slim-amd64-20.4.2
+        # user: "1000:1000"
+        restart: always
+        depends_on:
+            #- blockchain
+            - master
+        environment:
+            - XBR_DEBUG_TOKEN_ADDR
+            - XBR_DEBUG_NETWORK_ADDR
+            - CE_DISABLE=1
+            - CROSSBARFX_DISABLE_CE=1
+        network_mode: host
+        #ports:
+        #    - "8080:8080"
+        volumes:
+            - "${PWD}/edge1:/node:rw"
+        command:
+            - edge
+            - start
+            - --cbdir=/node/.crossbar
+            - --config=config.json
+            - --loglevel=info
+
+    seller1:
+        # image: crossbario/autobahn-python:cpy3-19.10.1
+        image: crossbario/autobahn-python:pypy3-19.10.1
+        user: "1000:1000"
+        restart: always
+        depends_on:
+            - edge1
+        environment:
+            - XBR_DEBUG_TOKEN_ADDR
+            - XBR_DEBUG_NETWORK_ADDR
+            - XBR_INSTANCE=ws://edge1:8080/ws
+            - XBR_REALM=realm1
+        volumes:
+            - ${PWD}/python/:/app
+        entrypoint: /usr/local/bin/python
+        command:
+            - -u
+            - seller.py
+            - --url=ws://edge1:8080/ws
+            - --realm=realm1
+
+    buyer1:
+        # image: crossbario/autobahn-python:cpy3-19.10.1
+        image: crossbario/autobahn-python:pypy3-19.10.1
+        user: "1000:1000"
+        restart: always
+        depends_on:
+            - edge1
+        environment:
+            - XBR_DEBUG_TOKEN_ADDR
+            - XBR_DEBUG_NETWORK_ADDR
+            - XBR_INSTANCE=ws://edge1:8080/ws
+            - XBR_REALM=realm1
+        volumes:
+            - ${PWD}/python/:/app
+        entrypoint: /usr/local/bin/python
+        command:
+            - -u
+            - buyer.py
+            - --url=ws://edge1:8080/ws
+            - --realm=realm1
+
+    seller2:
+        image: crossbario/autobahn-js:full-19.10.1
+        user: "1000:1000"
+        restart: always
+        depends_on:
+            - edge1
+        environment:
+            - XBR_DEBUG_TOKEN_ADDR
+            - XBR_DEBUG_NETWORK_ADDR
+            - XBR_INSTANCE=ws://edge1:8080/ws
+            - XBR_REALM=realm1
+        volumes:
+            - ${PWD}/javascript/:/app
+        entrypoint: /usr/local/bin/node
+        command:
+            - seller.js
+
+
+    buyer2:
+        image: crossbario/autobahn-js:full-19.10.1
+        user: "1000:1000"
+        restart: always
+        depends_on:
+            - edge1
+        environment:
+            - XBR_DEBUG_TOKEN_ADDR
+            - XBR_DEBUG_NETWORK_ADDR
+            - XBR_INSTANCE=ws://edge1:8080/ws
+            - XBR_REALM=realm1
+        volumes:
+            - ${PWD}/javascript/:/app
+        entrypoint: /usr/local/bin/node
+        command:
+            - buyer.js
+
+    workbench:
+        # image: crossbario/crossbarfx-workbench:cpy-19.10.1
+        image: crossbario/crossbarfx-workbench:pypy-19.10.1
+        user: "1000:1000"
+        # network_mode: host
+        ports:
+            - "8888:8888"
+        environment:
+            - "JUPYTERHUB_API_TOKEN=42"
+            - XBR_DEBUG_TOKEN_ADDR
+            - XBR_DEBUG_NETWORK_ADDR
+            - XBR_INSTANCE=ws://edge1:8080/ws
+            - XBR_REALM=realm1
+        volumes:
+            - "${PWD}/workbench/notebooks/:/home/jovyan/notebooks:rw"
+            - "${PWD}/workbench/.jupyter/:/home/jovyan/.jupyter:rw"
+
+            # we need to mount read-write, even though we only access read-only,
+            # because we need write access to the database lock file (even for readers)
+            - "${PWD}/edge1/.testdb:/home/jovyan/testdb:rw"
+            - "${PWD}/edge1/.xbrdb-transactions:/home/jovyan/xbrdb-transactions:rw"
+        command:
+            - jupyter
+            - notebook
+            - --ip=0.0.0.0
+            - --port=8888

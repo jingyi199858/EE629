@@ -1,0 +1,85 @@
+{
+    "version": 2,
+    "controller": {
+        "options": {
+            "shutdown": ["shutdown_on_worker_exit_with_error", "shutdown_on_worker_exit"]
+        }
+    },
+    "workers": [
+        {
+            "type": "router",
+            "realms": [
+                {
+                    "name": "realm1",
+                    "roles": [
+                        {
+                            "name": "anonymous",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "web",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8080
+                    },
+                    "paths": {
+                        "/": {
+                            "type": "static",
+                            "directory": ".."
+                        },
+                        "ws": {
+                            "type": "websocket"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "type": "guest",
+            "executable": "/home/oberstet/cpy372_1/bin/python",
+            "arguments": [
+                "backend.py",
+                "--url",
+                "ws://localhost:8080/ws",
+                "--realm",
+                "realm1"
+            ],
+            "options": {
+                "workdir": ".."
+            }
+        },
+        {
+            "type": "guest",
+            "executable": "/home/oberstet/cpy372_1/bin/python",
+            "arguments": [
+                "kivyapp.py"
+            ],
+            "options": {
+                "workdir": "..",
+                "env": {
+                    "inherit": true
+                }
+            }
+        }
+    ]
+}

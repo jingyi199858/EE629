@@ -1,0 +1,97 @@
+{
+    "version": 2,
+    "workers": [
+        {
+            "type": "router",
+            "options": {
+                "pythonpath": [
+                    ".."
+                ]
+            },
+            "realms": [
+                {
+                    "name": "realm-auth",
+                    "roles": [
+                        {
+                            "name": "authenticator",
+                            "permissions": [
+                                {
+                                    "uri": "com.example.authenticate",
+                                    "match": "exact",
+                                    "allow": {
+                                        "call": false,
+                                        "register": true,
+                                        "publish": false,
+                                        "subscribe": false
+                                    },
+                                    "disclose": {
+                                        "caller": false,
+                                        "publisher": false
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "realm-user1",
+                    "roles": [
+                        {
+                            "name": "user",
+                            "allow-by-default": true,
+                            "permissions": []
+                        }
+                    ]
+                },
+                {
+                    "name": "realm-user2",
+                    "roles": [
+                        {
+                            "name": "user",
+                            "allow-by-default": true,
+                            "permissions": []
+                        }
+                    ]
+                }
+            ],
+            "transports": [
+                {
+                    "type": "web",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8080
+                    },
+                    "paths": {
+                        "/": {
+                            "type": "static",
+                            "directory": "../web"
+                        },
+                        "shared": {
+                            "type": "static",
+                            "directory": "../../_shared-web-resources"
+                        },
+                        "ws": {
+                            "type": "websocket",
+                            "auth": {
+                                "ticket": {
+                                    "type": "dynamic",
+                                    "authenticator": "com.example.authenticate",
+                                    "authenticator-realm": "realm-auth"
+                                }
+                            }
+                        }
+                    }
+                }
+            ],
+            "components": [
+                {
+                    "type": "class",
+                    "classname": "authenticator.AuthenticatorSession",
+                    "realm": "realm-auth",
+                    "role": "authenticator"
+                }
+            ]
+        }
+    ]
+}

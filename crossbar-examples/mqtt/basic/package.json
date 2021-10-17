@@ -1,0 +1,19 @@
+{
+  "name": "native",
+  "version": "1.0.0",
+  "description": "Crossbar.io-MQTT integration MQTT test clients.",
+  "main": "mqtt-client.js",
+  "dependencies": {
+    "autobahn": ">=17.5.1",
+    "binary-parser": "^1.1.5",
+    "cbor": "^3.0.0",
+    "crypto": "0.0.3",
+    "mqtt": "^2.6.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Crossbar.io GmbH",
+  "license": "MIT"
+}
